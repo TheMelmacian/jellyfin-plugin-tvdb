@@ -177,9 +177,20 @@ namespace Jellyfin.Plugin.Tvdb.Providers
             };
 
             var episodeTvdbId = searchInfo.GetTvdbId().ToString(CultureInfo.InvariantCulture);
+            var ignoreTvdbId = string.Equals(episodeTvdbId, "0", StringComparison.OrdinalIgnoreCase) || ignoreTvdbIdField;
+
+            if (searchInfo.IndexNumber.HasValue && searchInfo.ParentIndexNumber.HasValue)
+            {
+                // Always use season and epsiode numbers if present.
+                // Using the episode's TvdbId directly would be easier, but could result in false metadata.
+                // After the Display Order of a Series was changed, the epsiode's TvdbId is not updated before a metadata refresh.
+                // Using the TvdbId would mean the same epsiode is returned even if its position is different in the selected order.
+                ignoreTvdbId = true;
+            }
+
             try
             {
-                if (string.Equals(episodeTvdbId, "0", StringComparison.OrdinalIgnoreCase) || ignoreTvdbIdField)
+                if (ignoreTvdbId)
                 {
                     searchInfo.SeriesProviderIds.TryGetValue(MetadataProvider.Tvdb.ToString(), out var seriesTvdbIdString);
                     if (string.IsNullOrEmpty(seriesTvdbIdString))
